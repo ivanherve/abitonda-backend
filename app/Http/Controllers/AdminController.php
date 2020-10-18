@@ -171,6 +171,8 @@ class AdminController extends Controller
 
         $password = $this->checkPwdStrength($password, $confpassword);
 
+        //return $this->debugRes($password->original);
+
         if (!$password->original["status"]) return $this->errorRes($password->original["response"], 401);
 
         $password = $password->original["response"];
@@ -313,17 +315,26 @@ class AdminController extends Controller
             $password = $password->original["response"];
 
             DB::insert("call add_user(?,?,?,?,?)", [$firstname, $surname, $email, $password, $profil]);
+            /*
+            $newUser = User::create([
+                'Firstname' => $firstname, 
+                'Surname' => $surname, 
+                'EmailAddress' => $email, 
+                'Profil_Id' => $profil,
+            ]);
+            */
 
             $newUser = User::all()->where('EmailAddress', '=', $email)->first();
             //return $this->debugRes($newUser);
 
-            $class = Classes::create([
-                'Class' => $className
+            $newTeacher = Teacher::create([
+                //'Class_Id' => $class->Class_Id,
+                'User_Id' => $newUser->User_Id,
             ]);
 
-            $newTeacher = Teacher::create([
-                'Class_Id' => $class->Class_Id,
-                'User_Id' => $newUser->User_Id
+            $class = Classes::create([
+                'Class' => $className,
+                'Professor_Id' => $newTeacher->Professor_Id
             ]);
 
             return $this->successRes("$newUser->Firstname $newUser->Surname à bien été ajouté et enseigne maitenant la classe de $className");

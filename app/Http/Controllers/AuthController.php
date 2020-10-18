@@ -51,7 +51,9 @@ class AuthController extends Controller
                 'api_token' => Str::random(60)
             ]);
         }
-        return $this->successRes(['user' => $user[0], 'token' => $newToken]);
+        $user = $user[0];
+        if($user->Profil_Id < 2) return $this->errorRes(["Monsieur/Madame $user->Surname, votre compte n'est pas encore activé, veuillez envoyer un e-mail à eabitonda@gmail.com"], 401);
+        return $this->successRes(['user' => $user, 'token' => $newToken]);
     }
 
     /**

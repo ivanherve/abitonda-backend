@@ -32,7 +32,6 @@ $router->group(['middleware' => 'admin'], function () use ($router) {
     $router->post('/addteacher', 'AdminController@addTeacher');
     $router->post('/addstudent', 'AdminController@addStudent');
 
-    $router->post('/editteacher', 'AdminController@editTeacher');
     $router->post('/banteacher', 'AdminController@banTeacher');
     $router->post('/rehireteacher', 'AdminController@reHireTeacher');
 
@@ -45,10 +44,13 @@ $router->group(['middleware' => 'admin'], function () use ($router) {
 
     $router->post('/banstudent', 'AdminController@banStudent');
     $router->post('/resetstudent', 'AdminController@resetStudent');
+
+    $router->get('/archivefiles', 'ItemController@archiveItems');
 });
 
 // TEACHERS
 $router->group(['middleware' => 'teacher'], function () use ($router) {
+    $router->post('/editteacher', 'AdminController@editTeacher');
     $router->get('/getclasses', 'AdminController@getClasses');
     $router->get('/getteachers', 'AdminController@getTeachers');
     $router->post('/additem', 'ItemController@addItem');
@@ -67,6 +69,6 @@ $router->group(['middleware' => 'parent'], function () use ($router){
 });
 
 $router->get('/getitem/{classe}', 'ItemController@getItems');
-$router->get('/download/{itemId}', 'ItemController@downloadItem');
+$router->get('/download/{itemId}/{userId}', 'ItemController@downloadItem');
 $router->post('/checkpwd', 'UserController@checkPassword');
 $router->post('/editpwd', 'UserController@editPassword');

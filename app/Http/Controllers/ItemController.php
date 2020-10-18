@@ -4,14 +4,23 @@ namespace App\Http\Controllers;
 
 use App\BlobItem;
 use App\Classes;
+use App\Downloads;
 use App\Item;
 use App\LinkItem;
 use App\Teachers;
+use App\User;
 use App\VItem;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\File;
 use phpDocumentor\Reflection\DocBlock\Tags\Link;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use ZipArchive;
+use Illuminate\Http\Client\Response;
+use Madnest\Madzipper\Madzipper;
 
 date_default_timezone_set('Africa/Kigali');
 
@@ -45,8 +54,8 @@ class ItemController extends Controller
         $type = $request->input('itemtype');
         if (!$type) return $this->errorRes('De quel type s\'agit-il ?', 404);
 
-        $blobitem = $request->input('blobitem');
-        if (!$blobitem || strlen($blobitem) < 1) return $this->errorRes('Veuillez insérer un fichier (jpg, ... autres que des vidéos)', 404);
+        //$blobitem = $request->input('blobitem');
+        //if (!$blobitem || strlen($blobitem) < 1) return $this->errorRes('Veuillez insérer un fichier (jpg, ... autres que des vidéos)', 404);
 
         $classId = Classes::all()->where('Class', '=', $class)->pluck('Class_Id')->first();
         if (!$classId) return $this->errorRes(['Cette classe est introuvable', $classId, $class], 404);
@@ -54,42 +63,25 @@ class ItemController extends Controller
         $text = explode('/', $type);
         $text = implode(' ', $text);
 
-        if (strpos($type, "image") === false) {
-            //return $this->errorRes([isset($text["image"]),$text], 404);
-            /**/
-            // Check if there is a file
-            if (!$request->hasFile('linkitem')) {
-                return $this->errorRes('Il n\'y a pas de fichier', 404);
-            }
-
-            $linkitem = $request->file('linkitem');
-            if (!$linkitem) return $this->errorRes('Il n\'y a pas de fichier', 404);
-
-            $wholeDir = $this->filesPath . $class;
-
-            // To create a folder for a new class
-            if (!file_exists($wholeDir)) {
-                mkdir($wholeDir, 0777, true);
-            }
-
-            $title = $title . '.' . $linkitem->extension();
-
-            $item = Item::create([
-                'Title' => $title,
-                'details' => $detail,
-                'Class_Id' => $classId,
-                'type' => $type,
-            ]);
-            $title = $this->transformFilename($title);
-            if (!$item) {
-                return $this->errorRes('Un problème est survenue lors de l\'importation', 500);
-            } else {
-                $wholeDirLink = $wholeDir . '/' . $class . '-' . $item->Item_Id . '-' . $title;
-                $linkitem->move($wholeDir, $class . '-' . $item->Item_Id . '-' . $title);
-                DB::insert("call add_linkitem(?,?)", [$wholeDirLink, $item->Item_Id]);
-                return $this->successRes('L\'image a bien été importé');
-            }
+        //if (strpos($type, "image") === false) {
+        //return $this->errorRes([isset($text["image"]),$text], 404);
+        /**/
+        // Check if there is a file
+        if (!$request->hasFile('linkitem')) {
+            return $this->errorRes('Il n\'y a pas de fichier', 404);
         }
+
+        $linkitem = $request->file('linkitem');
+        if (!$linkitem) return $this->errorRes('Il n\'y a pas de fichier', 404);
+
+        $wholeDir = $this->filesPath . $class;
+
+        // To create a folder for a new class
+        if (!file_exists($wholeDir)) {
+            mkdir($wholeDir, 0777, true);
+        }
+
+        $title = $title . '.' . $linkitem->extension();
 
         $item = Item::create([
             'Title' => $title,
@@ -97,11 +89,30 @@ class ItemController extends Controller
             'Class_Id' => $classId,
             'type' => $type,
         ]);
+        $title = $this->transformFilename($title);
+        if (!$item) {
+            return $this->errorRes('Un problème est survenue lors de l\'importation', 500);
+        } else {
+            $wholeDirLink = $wholeDir . '/' . $class . '-' . $item->Item_Id . '-' . $title;
+            $linkitem->move($wholeDir, $class . '-' . $item->Item_Id . '-' . $title);
+            DB::insert("call add_linkitem(?,?)", [$wholeDirLink, $item->Item_Id]);
+            return $this->successRes('L\'image a bien été importé');
+        }
+        //}
+        /*
+        $item = Item::create([
+            'Title' => $title,
+            'details' => $detail,
+            'Class_Id' => $classId,
+            'type' => $type,
+        ]);
 
+        
         //return $this->errorRes($item->Item_Id,404);
         if (!$item) return $this->errorRes('Le support n\'a pas pu être ajouté', 404);
         DB::insert("call add_blobitem(?,?)", [$blobitem, $item->Item_Id]);
         return $this->successRes('L\'image a bien été importé');
+        */
     }
 
     public function addLink(Request $request)
@@ -133,9 +144,10 @@ class ItemController extends Controller
         return $this->successRes('L\'image a bien été importé');
     }
 
-    public function downloadItem($itemId)
+    public function downloadItem($itemId, $userId)
     {
-        //$user = Auth::user(); if(!$user) return $this->errorRes(["Unauthorized."], 401);        
+        $user = User::all()->where('User_Id', '=', $userId)->first();
+        if (!$user) return $this->errorRes(["Unauthorized."], 401);
 
         if (!$itemId) return $this->errorRes('De quel support il s\'agit ?', 404);
 
@@ -153,13 +165,60 @@ class ItemController extends Controller
             return $this->errorRes(['Ce fichier n\'existe pas', $path], 404);
         }
 
+        $download = Downloads::all()->where('User_Id', '=', $user->User_Id)->where('Item_Id', '=', $item->Item_Id);
+
+        if (sizeof($download) < 1) {
+            Downloads::create([
+                'User_Id' => $user->User_Id,
+                'Item_Id' => $item->Item_Id,
+                'nbDownloads' => 1
+            ]);
+        } else {
+            /**/
+            $download->first()->fill([
+                'nbDownloads' => $download->first()->nbDownloads + 1
+            ])->save();
+            //return $this->debugRes($download->first()->nbDownloads);
+        }
+
         //return $this->errorRes([$fileName, $physicalFileName, $path], 404);
 
         return $this->download($path, $fileName);
     }
 
+    public function archiveItems()
+    {
+        $zipper = new Madzipper();
+        $zipFileName = './archives.zip';
+        if (file_exists($zipFileName)) unlink($zipFileName);
+        $path = './files/';
+        $files = glob($path . '*');
+        $tab = [];
+        $zipper->make($zipFileName);
+        $zipper->remove($zipper->listFiles());
+        /**/
+        foreach ($files as $key => $value) {
+            $classe = realpath($value);
+            if (is_dir($classe)) {
+                $v = substr($value, strlen($path));
+                //array_push($tab, glob($value.'/*'));
+                $tab = array_merge($tab, [$v => glob($v . '/*')]);
+                $zipper->folder($v)->add(glob($value . '/*'));
+            } else {
+                $zipper->add($value);
+                $tab = array_merge($tab, ['other' => $value]);
+            }
+        }
+
+        //$zipper->folder('test3')->add($files);
+        $zipper->close();
+        return response()->download($zipFileName);
+        //return response()->json($zipper->listFiles());
+    }
+
     public function editItem(Request $request)
     {
+        //return $this->debugRes('debug');
         $itemId = $request->input('itemId');
         if (!$itemId) return $this->errorRes('De quel support s\'agit-il ?', 404);
         $item = Item::all()->where('Item_Id', '=', $itemId)->first();

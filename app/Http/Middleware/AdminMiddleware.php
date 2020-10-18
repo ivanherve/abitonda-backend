@@ -18,10 +18,10 @@ class AdminMiddleware
     public function handle($request, Closure $next)
     {
         $token = Token::all()->where('api_token','=',$request->header('Authorization'))->first();
-        if(!$token) return response(['status'=> 0,'response' => ['Unauthorized.']], 401);
+        if(!$token) return response(['status'=> 0,'response' => ['Unauthorized. adto']], 401);
         $user = User::all()->where('User_Id','=',$token->User_Id)->first();
         if($user->Profil_Id < 3){
-            return response(['status'=> 0,'response' => ['Unauthorized.']], 401);
+            return response(['status'=> 0,'response' => ['Unauthorized. ad']], 401);
         }
         return $next($request);
     }

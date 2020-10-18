@@ -14,7 +14,7 @@ class Controller extends BaseController
      * @return mixed
      */
 
-    public $filesPath = '../../files/';
+    public $filesPath = './files/';
 
     public function jsonRes($status, $response, $httpCode)
     {
@@ -66,5 +66,10 @@ class Controller extends BaseController
         if (strlen($password) < 8) return $this->errorRes('Le mot de passe doit contenir plus de 8 caractères', 401);
         if (!filter_var($confPassword, FILTER_VALIDATE_BOOLEAN)) return $this->errorRes('Les mots de passe ne correspondent pas', 401);
         return $this->successRes($password);
+    }
+
+    public function public_path($path = null)
+    {
+        return rtrim(app()->basePath('public/' . $path), '/');
     }
 }
