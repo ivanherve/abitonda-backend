@@ -20,6 +20,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ZipArchive;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\File as FacadesFile;
 use Madnest\Madzipper\Madzipper;
 
 date_default_timezone_set('Africa/Kigali');
@@ -89,7 +90,9 @@ class ItemController extends Controller
             'Class_Id' => $classId,
             'type' => $type,
         ]);
+
         $title = $this->transformFilename($title);
+
         if (!$item) {
             return $this->errorRes('Un problème est survenue lors de l\'importation', 500);
         } else {
@@ -126,7 +129,6 @@ class ItemController extends Controller
 
         $linkitem = $request->input('linkitem');
         if (!$linkitem || strlen($linkitem) < 1) return $this->errorRes('Veuillez insérer un lien', 404);
-        if (strpos($linkitem, "http") === false) $linkitem = 'http://' . $linkitem;
 
         $classId = Classes::all()->where('Class', '=', $class)->pluck('Class_Id')->first();
         if (!$classId) return $this->errorRes(['Cette classe est introuvable', $classId, $class], 404);
@@ -138,10 +140,25 @@ class ItemController extends Controller
             'type' => $type,
         ]);
 
+        //return $this->debugRes(strpos($linkitem, "http"));
+        if (strpos($linkitem, "http") === false) {
+            $linkitem = 'http://' . $linkitem;
+        }
+
+        $wholeDir = $this->filesPath . $class;
+
+        // To create a folder for a new class
+        if (!file_exists($wholeDir)) {
+            mkdir($wholeDir, 0777, true);
+        }
+
+        $wholeDirLink = $wholeDir . '/' . $class . '-' . $item->Item_Id . '-';
+        FacadesFile::put($wholeDirLink . $title . '.txt', "Lien vers le support: \n$linkitem");
+
         //return $this->errorRes($item->Item_Id,404);
         if (!$item) return $this->errorRes('Le support n\'a pas pu être ajouté', 404);
         DB::insert("call add_linkitem(?,?)", [$linkitem, $item->Item_Id]);
-        return $this->successRes('L\'image a bien été importé');
+        return $this->successRes('Le support a bien été importé');
     }
 
     public function downloadItem($itemId, $userId)
@@ -189,8 +206,17 @@ class ItemController extends Controller
     public function archiveItems()
     {
         $zipper = new Madzipper();
-        $zipFileName = './archives.zip';
-        if (file_exists($zipFileName)) unlink($zipFileName);
+        $lastArchives = [DB::select("call archives()")[0], DB::select("call archives()")[1]];
+        $lA = [];
+        foreach ($lastArchives as $key => $value) {
+            $date = date('Y-m-d_H-i-s', strtotime($value->archivesDate));
+            array_push($lA, $date);
+        }
+        $zipFileName = "./Archives_$lA[1]_$lA[0].zip";
+        //return $this->debugRes($zipFileName);
+        foreach (glob("./*.zip") as $filename) {
+            unlink($filename);
+        }
         $path = './files/';
         $files = glob($path . '*');
         $tab = [];
@@ -210,10 +236,47 @@ class ItemController extends Controller
             }
         }
 
-        //$zipper->folder('test3')->add($files);
         $zipper->close();
-        return response()->download($zipFileName);
-        //return response()->json($zipper->listFiles());
+        DB::insert("call new_archives()");
+        //return $this->debugRes($zipFileName);
+        return response()->download($zipFileName, basename($zipFileName));
+    }
+
+    public function delArchives()
+    {
+        $zips = glob("./*.zip");
+        $physicalFiles = glob('./files/*');
+        $files = Item::all()->where('disabled', '=', 0);
+        //return $this->debugRes($files);
+        foreach ($files as $file) {
+            $file->fill(['disabled' => 1])->save();
+        }
+
+        foreach ($zips as $filename) {
+            unlink($filename);
+        }
+
+        foreach ($physicalFiles as $filename) {
+            if (is_dir($filename)) {
+                foreach (glob($filename . '/*') as $file) {
+                    unlink($file);
+                }
+            } else unlink($filename);
+        }
+
+        if(sizeof($zips) < 1) return $this->successRes('Il n\'y a plus de fichier zip dans le serveur');
+        if(sizeof($physicalFiles) < 1) return $this->successRes('Il n\'y a plus de fichier dans le serveur');
+        return $this->errorRes('Des fichiers sont encore présent', 501);
+    }
+
+    public function resetFiles()
+    {
+        $today = date_format(date_create(), "Y-m-d");
+        $files = DB::select("call todays_disabled_items()");
+        foreach ($files as $file) {
+            $file->fill(['disabled' => 0])->save();
+        }
+        return $this->debugRes($files);
     }
 
     public function editItem(Request $request)

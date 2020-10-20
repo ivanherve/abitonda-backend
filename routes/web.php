@@ -46,6 +46,8 @@ $router->group(['middleware' => 'admin'], function () use ($router) {
     $router->post('/resetstudent', 'AdminController@resetStudent');
 
     $router->get('/archivefiles', 'ItemController@archiveItems');
+    $router->get('/delarchives', 'ItemController@delArchives');
+    $router->get('/resetfiles', 'ItemController@resetFiles');
 });
 
 // TEACHERS
