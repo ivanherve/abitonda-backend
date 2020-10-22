@@ -62,7 +62,7 @@ class UserController extends Controller
         if(!$newpassword->original["status"]) return $this->errorRes($newpassword->original["response"], 401);
         $newpassword = $newpassword->original["response"];
         if (!$confpassword) return $this->errorRes('Les mots de passe ne correspondent pas', 401);
-        //return $this->debugRes(Auth::user());
+        return $this->debugRes(Auth::user());
         DB::update("call update_pwd(?,?)", [$newpassword, $user->User_Id]);
         return $this->successRes('Le mot de passe a bien été modifié');
     }
