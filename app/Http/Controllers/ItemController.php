@@ -7,9 +7,11 @@ use App\Classes;
 use App\Downloads;
 use App\Item;
 use App\LinkItem;
+use App\Parents;
 use App\Teachers;
 use App\User;
 use App\VItem;
+use App\VParents;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -99,7 +101,7 @@ class ItemController extends Controller
             $wholeDirLink = $wholeDir . '/' . $class . '-' . $item->Item_Id . '-' . $title;
             $linkitem->move($wholeDir, $class . '-' . $item->Item_Id . '-' . $title);
             DB::insert("call add_linkitem(?,?)", [$wholeDirLink, $item->Item_Id]);
-            return $this->successRes('L\'image a bien été importé');
+            return $this->successRes('Le support a bien été importé');
         }
         //}
         /*
@@ -114,7 +116,7 @@ class ItemController extends Controller
         //return $this->errorRes($item->Item_Id,404);
         if (!$item) return $this->errorRes('Le support n\'a pas pu être ajouté', 404);
         DB::insert("call add_blobitem(?,?)", [$blobitem, $item->Item_Id]);
-        return $this->successRes('L\'image a bien été importé');
+        return $this->successRes('Le support a bien été importé');
         */
     }
 
@@ -171,12 +173,11 @@ class ItemController extends Controller
         $item = VItem::all()->where('Item_Id', '=', $itemId)->first();
         if (!$item) return $this->errorRes('Ce support n\'existe pas', 404);
 
-        $classe = Classes::all()->where('Class_Id', '=', $item->Class_Id)->first();
-        if (!$classe) return $this->errorRes('De quelle classe s\'agit-il ?', 404);
-
         $fileName = $item->Title;
 
         $path = $item->Link;
+
+        //return $this->debugRes([$fileName, $path]);
 
         if (!file_exists($path)) {
             return $this->errorRes(['Ce fichier n\'existe pas', $path], 404);
@@ -184,21 +185,24 @@ class ItemController extends Controller
 
         $download = Downloads::all()->where('User_Id', '=', $user->User_Id)->where('Item_Id', '=', $item->Item_Id);
 
-        if (sizeof($download) < 1) {
-            Downloads::create([
-                'User_Id' => $user->User_Id,
-                'Item_Id' => $item->Item_Id,
-                'nbDownloads' => 1
-            ]);
-        } else {
-            /**/
-            $download->first()->fill([
-                'nbDownloads' => $download->first()->nbDownloads + 1
-            ])->save();
-            //return $this->debugRes($download->first()->nbDownloads);
-        }
+        $checkParent = Parents::all()->where('User_Id', '=', $user->User_Id)->first();
 
-        //return $this->errorRes([$fileName, $physicalFileName, $path], 404);
+        // We count download ONLY if it is a parent who downloads
+        if ($checkParent) {
+            if (sizeof($download) < 1) {
+                Downloads::create([
+                    'User_Id' => $user->User_Id,
+                    'Item_Id' => $item->Item_Id,
+                    'nbDownloads' => 1
+                ]);
+            } else {
+                /**/
+                $download->first()->fill([
+                    'nbDownloads' => $download->first()->nbDownloads + 1
+                ])->save();
+                //return $this->debugRes($download->first()->nbDownloads);
+            }
+        }
 
         return $this->download($path, $fileName);
     }
@@ -206,13 +210,14 @@ class ItemController extends Controller
     public function archiveItems()
     {
         $zipper = new Madzipper();
-        $lastArchives = [DB::select("call archives()")[0], DB::select("call archives()")[1]];
+        $lastArchives = [DB::select("call archives()")[0]];
         $lA = [];
         foreach ($lastArchives as $key => $value) {
             $date = date('Y-m-d_H-i-s', strtotime($value->archivesDate));
             array_push($lA, $date);
         }
-        $zipFileName = "./Archives_$lA[1]_$lA[0].zip";
+        array_push($lA, date_format(date_create(), "Y-m-d_H-i-s"));
+        $zipFileName = "./Archives_$lA[0]_$lA[1].zip";
         //return $this->debugRes($zipFileName);
         foreach (glob("./*.zip") as $filename) {
             unlink($filename);
@@ -264,8 +269,8 @@ class ItemController extends Controller
             } else unlink($filename);
         }
 
-        if(sizeof($zips) < 1) return $this->successRes('Il n\'y a plus de fichier zip dans le serveur');
-        if(sizeof($physicalFiles) < 1) return $this->successRes('Il n\'y a plus de fichier dans le serveur');
+        if (sizeof($zips) < 1) return $this->successRes('Il n\'y a plus de fichier zip dans le serveur');
+        if (sizeof($physicalFiles) < 1) return $this->successRes('Il n\'y a plus de fichier dans le serveur');
         return $this->errorRes('Des fichiers sont encore présent', 501);
     }
 
