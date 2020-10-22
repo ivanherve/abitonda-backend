@@ -209,13 +209,18 @@ class AdminController extends Controller
         $email = $request->input('email');
 
         $teacher = User::all()->where('User_Id', '=', $teacherId);
+        $tProfil = VTeachers::all()->where('User_Id', '=', $teacherId)->pluck('Profil')->first();
+        
         if (!$teacher) return $this->errorRes('Ce compte n\'existe pas', 404);
 
         $teacher = $teacher->first();
 
         if (!$firstname) $firstname = $teacher->Firstname;
         if (!$surname) $surname = $teacher->Surname;
-        if (!$profil) $profil = $teacher->Profil;
+        if (!$profil) $profil = $tProfil;
+        $checkProfil = Profil::all()->where('Profil', '=', $profil);
+        if(!$checkProfil) return $this->errorRes("Ce profil n'existe pas", 404);
+        //return $this->debugRes([$request->input('profil'), $profil, $checkProfil->first()->Profil_Id, $tProfil]);
         if ($email) {
             $emailCheck = User::all()->where('EmailAddress', '=', $email);
             if (sizeof($emailCheck) > 0) return $this->errorRes('Cet adresse email est déjà utilisé', 404);
@@ -223,7 +228,7 @@ class AdminController extends Controller
             $email = $teacher->EmailAddress;
         }
 
-        $data = ['Firstname' => $firstname, 'Surname' => $surname, 'EmailAddress' => $email];
+        $data = ['Firstname' => $firstname, 'Surname' => $surname, 'EmailAddress' => $email, 'Profil_Id' => $checkProfil->first()->Profil_Id];
 
         $teacher->fill($data)->save();
 
