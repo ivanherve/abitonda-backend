@@ -37,6 +37,7 @@ class AdminController extends Controller
     public function getParents()
     {
         $parentList = VParents::all();
+        if(sizeof($parentList) < 1) return $this->errorRes("Aucun parent n'est inscrit", 404);
         $user = Auth::user();
         if ($user->Profil_Id > 2) return $this->successRes($parentList);
         else {
@@ -153,6 +154,7 @@ class AdminController extends Controller
             foreach ($teachersList as $key => $value) {
                 array_push($newList, $value);
             }
+            if(!$newList) return $this->errorRes("Vous n'avez aucun employée",404);
             return $this->successRes($newList);
         }
     }
@@ -418,7 +420,7 @@ class AdminController extends Controller
     public function getStudents()
     {
         $studentList = VStudents::all();
-        if (!$studentList) return $this->errorRes("Il n'y a pas d'étudiant", 404);
+        if (sizeof($studentList) < 1) return $this->errorRes("Il n'y a pas d'étudiant", 404);
 
         $user = Auth::user();
 
