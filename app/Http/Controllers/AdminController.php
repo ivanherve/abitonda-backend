@@ -37,7 +37,7 @@ class AdminController extends Controller
     public function getParents()
     {
         $parentList = VParents::all();
-        if(sizeof($parentList) < 1) return $this->errorRes("Aucun parent n'est inscrit", 404);
+        if (sizeof($parentList) < 1) return $this->errorRes("Aucun parent n'est inscrit", 404);
         $user = Auth::user();
         if ($user->Profil_Id > 2) return $this->successRes($parentList);
         else {
@@ -154,7 +154,7 @@ class AdminController extends Controller
             foreach ($teachersList as $key => $value) {
                 array_push($newList, $value);
             }
-            if(!$newList) return $this->errorRes("Vous n'avez aucun employée",404);
+            if (!$newList) return $this->errorRes("Vous n'avez aucun employée", 404);
             return $this->successRes($newList);
         }
     }
@@ -212,7 +212,7 @@ class AdminController extends Controller
 
         $teacher = User::all()->where('User_Id', '=', $teacherId);
         $tProfil = VTeachers::all()->where('User_Id', '=', $teacherId)->pluck('Profil')->first();
-        
+
         if (!$teacher) return $this->errorRes('Ce compte n\'existe pas', 404);
 
         $teacher = $teacher->first();
@@ -221,7 +221,7 @@ class AdminController extends Controller
         if (!$surname) $surname = $teacher->Surname;
         if (!$profil) $profil = $tProfil;
         $checkProfil = Profil::all()->where('Profil', '=', $profil);
-        if(!$checkProfil) return $this->errorRes("Ce profil n'existe pas", 404);
+        if (!$checkProfil) return $this->errorRes("Ce profil n'existe pas", 404);
         //return $this->debugRes([$request->input('profil'), $profil, $checkProfil->first()->Profil_Id, $tProfil]);
         if ($email) {
             $emailCheck = User::all()->where('EmailAddress', '=', $email);
@@ -259,6 +259,20 @@ class AdminController extends Controller
         if ($user->Profil_Id > 3) return $this->errorRes("Vous ne pouvez pas bannir cet utilisateur", 401);
         $user->fill(['Profil_Id' => 2])->save();
         return $this->successRes("$user->Firstname $user->Surname a bien été réintégré");
+    }
+
+    public function getClassesPerTeacher($userId)
+    {
+        $user = User::all()->where('User_Id','=',$userId);
+        if(!$user) return $this->errorRes('Cet utilistateur n\'existe pas', 404);
+        $user = $user->first();
+        $teacherId = Teacher::all()->where('User_Id', '=', $user->User_Id)->pluck('Professor_Id')->first();
+        $classesList = VClasses::all()->where('disabled', '=', 0)->where('Professor_Id', '=', $teacherId);
+        $newList = [];
+        foreach ($classesList as $key => $value) {
+            array_push($newList, $value->Class);
+        }
+        return $this->successRes($newList);
     }
 
     public function getClasses()

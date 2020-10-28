@@ -54,6 +54,7 @@ $router->group(['middleware' => 'admin'], function () use ($router) {
 $router->group(['middleware' => 'teacher'], function () use ($router) {
     $router->post('/editteacher', 'AdminController@editTeacher');
     $router->get('/getclasses', 'AdminController@getClasses');
+    $router->get('/getclasses/{userId}', 'AdminController@getClassesPerTeacher');
     $router->get('/getteachers', 'AdminController@getTeachers');
     $router->post('/additem', 'ItemController@addItem');
     $router->post('/delitem', 'ItemController@delItem');
