@@ -12,7 +12,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
 {
     use Authenticatable, Authorizable;
 
-    protected $table = 'User';
+    protected $table = 'user';
 
     protected $primaryKey = 'User_Id';
 
