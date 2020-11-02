@@ -7,5 +7,9 @@ RUN a2enmod rewrite
 
 ADD . /var/www
 ADD ./public /var/www/html
+ADD ./conf /etc/apache2/sites-enabled
+RUN mkdir /etc/ssl/abitonda-certification
+RUN chmod 700 /etc/ssl/abitonda-certification
+COPY abitonda-certification /etc/ssl/abitonda-certification
 
 RUN chmod -R 777 /var/www/storage/
