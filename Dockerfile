@@ -12,4 +12,6 @@ RUN mkdir /etc/ssl/abitonda-certification
 RUN chmod 700 /etc/ssl/abitonda-certification
 COPY abitonda-certification /etc/ssl/abitonda-certification
 
+RUN a2enmod ssl
+
 RUN chmod -R 777 /var/www/storage/
