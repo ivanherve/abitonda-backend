@@ -14,6 +14,6 @@ COPY abitonda-certification /etc/ssl/abitonda-certification
 
 RUN a2enmod ssl
 RUN a2enmod rewrite
-RUN a2ensite /etc/apache2/sites-enabled/example_your_domain
+RUN a2ensite /etc/apache2/sites-enabled/.
 
 RUN chmod -R 777 /var/www/storage/
