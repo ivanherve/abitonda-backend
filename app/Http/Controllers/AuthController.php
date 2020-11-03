@@ -70,7 +70,7 @@ class AuthController extends Controller
         if (!$token) {
             return $this->errorRes('Vous n\'êtes pas connecté', 401);
         }
-        $token = DB::select('UPDATE Token SET api_token = null WHERE token_id = ' . $tokenId . ';');
+        $token = DB::select('UPDATE token SET api_token = null WHERE token_id = ' . $tokenId . ';');
         $emptyTok = Token::all()->where('Token_id', '=', $tokenId)->pluck('api_token')->first();
         //        return $this->jsonRes('s',$emptyTok,200);
         if ($emptyTok == null) {
