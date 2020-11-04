@@ -191,7 +191,7 @@ class AdminController extends Controller
 
         $user = User::all()->where('EmailAddress', '=', $email);
         if (!$user) return $this->errorRes("Le professeur n'a pas été ajouté", 404);
-        //return $this->errorRes($user,404);
+        return $this->errorRes($user,404);
         $user = $user[0];
         DB::insert("call add_professor(?)", [$user->User_Id]);
 
