@@ -185,12 +185,12 @@ class AdminController extends Controller
         $profil_id = Profil::all()->where('Profil', '=', $profil)->pluck('Profil_Id')->first();
 
         $emailCheck = User::all()->where('EmailAddress', '=', $email)->first();
-        if ($emailCheck) return $this->errorRes(["Cette adresse email est déjà utilisé", $emailCheck], 404);
+        if ($emailCheck) return $this->errorRes("Cette adresse email est déjà utilisé", 404);
 
         DB::insert("call add_user(?,?,?,?,?)", [$firstname, $surname, $email, $password, $profil_id]);
 
         $user = User::all()->where('EmailAddress', '=', $email)->first();
-        if (!$user) return $this->errorRes(["Le professeur n'a pas été ajouté", User::all()], 404);
+        if (!$user) return $this->errorRes("Le professeur n'a pas été ajouté", 404);
         //return $this->errorRes($user,404);
         DB::insert("call add_professor(?)", [$user->User_Id]);
 
