@@ -25,7 +25,7 @@ class DelToken extends Command
         $token = Token::all();
         foreach ($token as $k => $t) {
             # delete all of them
-            if (date("Y-m-d H:i", strtotime("+2 day", strtotime($t->updated_at))) === date("Y-m-d H:i"))
+            if (date("Y-m-d H:i", strtotime("+2 day", strtotime($t->updated_at))) <= date("Y-m-d H:i"))
                 if (strlen($t->api_token) > 0) {
                     DB::select('call sign_out(?);', [$t->Token_Id]);
                     Log::info("$t->Token_Id deleted");
