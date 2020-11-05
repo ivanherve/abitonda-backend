@@ -382,16 +382,8 @@ class AdminController extends Controller
         if (!$class) return $this->errorRes('Cette classe n\'existe pas dans notre système', 404);
         $teacher = VTeachers::all()->where('Professor_Id', '=', $teacherId)->first();
         if (!$teacher) return $this->errorRes('Ce professeur n\'existe pas dans notre système', 404);
-        //return $this->debugRes([$class->Class_Id, $teacher->Professor_Id]);
-        /*
-        return $this->debugRes([
-            [
-                'class' => $class,
-                'teacherId' => $teacher,
-                'active' => $activ
-            ]
-        ]);*/
-        $class->fill(['Professor_Id' => $teacher->Professor_Id])->save();
+        
+        $class->fill(['Professor_Id' => $teacher->Professor_Id, 'disabled' => $activ])->save();
 
         return $this->successRes("La classe de $class->Class a bien été modifié");
     }
