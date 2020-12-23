@@ -50,8 +50,8 @@ class ItemController extends Controller
 */
         $title = $request->input('title');
         if (!$title) return $this->errorRes('Veuillez insérer un titre', 404);
-        else if (strpos($title, '.') != false) return $this->errorRes('Veuillez ne pas insérer de point "." dans le titre', 401);
-        else if (strpos($title, '"\"') != false) return $this->errorRes('Veuillez ne pas insérer de point "\" dans le titre', 401);
+        else if (strpos($title, '.') != false) return $this->errorRes('Veuillez ne pas insérer de "." dans le titre', 401);
+        else if (strpos($title, '\\') != false) return $this->errorRes('Veuillez ne pas insérer de "\" dans le titre', 401);
         else if (strpos($title, '/') != false) return $this->errorRes('Veuillez ne pas insérer de "/" dans le titre', 401);
         else if (strpos($title, ':') != false) return $this->errorRes('Veuillez ne pas insérer de ":" dans le titre', 401);
         else if (strpos($title, '*') != false) return $this->errorRes('Veuillez ne pas insérer de "*" dans le titre', 401);
